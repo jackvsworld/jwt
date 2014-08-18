@@ -1,47 +1,62 @@
-# JSON Web Token (JWT) Implementation for .NET
+JSON Web Tokens for .NET
+========================
 
 This library supports generating and decoding [JSON Web Tokens](http://tools.ietf.org/html/draft-jones-json-web-token-10).
 
-## Installation
-The easiest way to install is via NuGet.  See [here](https://nuget.org/packages/JWT).  Else, you can download and compile it yourself.
+Defining Tokens
+---------------
 
-## Usage
-### Creating Tokens
-    var payload = new Dictionary<string, object>() {
-        { "claim1", 0 },
-        { "claim2", "claim2-value" }
+A typical JWT might contain some of these claims:
+
+    public class MyWebToken : JsonWebToken
+    {
+      public string sub { get; set; }  /* subject */
+      public string iss { get; set; }  /* issuer */
+      public long exp { get; set; }    /* expiration time */
+    }
+    
+Simply create a subclass of `JsonWebToken` and add the claims that you want to use.
+
+Creating Tokens
+---------------
+
+The following code creates a JWT with an expiration time of two hours:
+
+    var jwt = new MyWebToken
+    {
+      iss = "www.example.com",
+      sub = "jack@example.com",
+      exp = Convert.ToInt64(DateTime.Now.AddHours(2.0).Subtract(JsonWebToken.Epoch).TotalSeconds),
     };
-    var secretKey = "GQDstcKsx0NHjPOuXOYg5MbeJ1XT0uFiwDVvVBrk";
-    string token = JWT.JsonWebToken.Encode(payload, secretKey, JWT.JwtHashAlgorithm.HS256);
-    Console.Out.WriteLine(token);
+    
+    string token = jwt.Encode("MY_SECRET_KEY", JwtHashAlgorithm.HS256);
+    Console.WriteLine(token);
 
-Output will be:
+Example output:
 
-    eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjbGFpbTEiOjAsImNsYWltMiI6ImNsYWltMi12YWx1ZSJ9.8pwBI_HtXqI3UgQHQ_rDRnSQRxFL1SR8fbQoS-5kM5s
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ3d3cuZXhhbXBsZS5jb20iLCJzdWIiOiJqYWNrQGV4YW1wbGUuY29tIiwiZXhwIjoxNDA4MzU0ODg3fQ.sfa_JUbOlYL7eY8M1GnctXXVJWaaec9M3kvJDpkeir4
 
-### Verifying and Decoding Tokens
+Verifying and Decoding Tokens
+-----------------------------
 
-    var token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjbGFpbTEiOjAsImNsYWltMiI6ImNsYWltMi12YWx1ZSJ9.8pwBI_HtXqI3UgQHQ_rDRnSQRxFL1SR8fbQoS-5kM5s";
-    var secretKey = "GQDstcKsx0NHjPOuXOYg5MbeJ1XT0uFiwDVvVBrk";
+The following code demonstrates how to verify and decode a JWT:
+
     try
     {
-        string jsonPayload = JWT.JsonWebToken.Decode(token, secretKey);
-        Console.Out.WriteLine(jsonPayload);
+      var jwt = JsonWebToken.Decode<MyWebToken>(token, "MY_SECRET_KEY");
+      Console.WriteLine(jwt);
     }
-    catch (JWT.SignatureVerificationException)
-    {
-        Console.Out.WriteLine("Invalid token!");
-    }
-
-Output will be:
-
-    {"claim1":0,"claim2":"claim2-value"}
-
-You can also deserialize the JSON payload directly to a .Net object with DecodeToObject:
-
-    var payload = JWT.JsonWebToken.DecodeToObject(token, secretKey) as IDictionary<string, object>;
-    Console.Out.WriteLine(payload["claim2"]);
-
-which will output:
     
-    claim2-value
+    catch (FormatException)
+    {
+      Console.WriteLine("Invalid token!");
+    }
+    
+    catch (CryptographicException)
+    {
+      Console.WriteLine("Signature mismatch!");
+    }
+
+Example output:
+
+    { "iss": "www.example.com", "sub": "jack@example.com", "exp": /Date(1408354887)/ }
