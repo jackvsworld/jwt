@@ -2,11 +2,11 @@
 <package>
 	<metadata>
 		<id>JWT</id>
-		<version>1.3.2</version>
-		<authors>John Sheehan, Michael Lehenbauer</authors>
-		<description>JWT (JSON Web Token) Implementation for .NET (Public Domain)</description>
+		<version>1.4</version>
+		<authors>John Sheehan, Michael Lehenbauer, Andrew Barton</authors>
+		<description>JSON Web Token implementation for .NET</description>
 		<language>en-US</language>
-		<projectUrl>http://github.com/johnsheehan/jwt</projectUrl>
+		<projectUrl>http://github.com/jackvsworld/jwt</projectUrl>
 		<tags>jwt json</tags>
 	</metadata>
 </package>

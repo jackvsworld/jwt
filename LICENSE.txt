@@ -1,6 +1,8 @@
 JWT for .NET
 Written by John Sheehan
 (http://john-sheehan.com)
+Modified by Andrew Barton
+(http://jackvsworld.github.io)
  
 This work is public domain.
 "The person who associated a work with this document has 

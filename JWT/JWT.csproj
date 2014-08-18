@@ -8,7 +8,7 @@
     <ProjectGuid>{A80B51B8-DDF6-4026-98A4-B59653E50B38}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>JWT</RootNamespace>
+    <RootNamespace>Jack.Security</RootNamespace>
     <AssemblyName>JWT</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
