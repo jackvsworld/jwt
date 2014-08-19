@@ -89,7 +89,7 @@ namespace Jack.Security
     /// <remarks>
     /// January 1, 1970
     /// </remarks>
-    public static readonly DateTime Epoch = new DateTime(1970, 1, 1);
+    public static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private static readonly Encoding encoding = Encoding.UTF8;
     private static readonly JavaScriptSerializer json = new JavaScriptSerializer();

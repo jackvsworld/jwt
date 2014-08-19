@@ -22,7 +22,7 @@ Creating Tokens
 
 The following code creates a JWT with an expiration time of two hours:
 
-    var expires = DateTime.Now.AddHours(2.0);
+    var expires = DateTime.UtcNow.AddHours(2.0);
     var jwt = new MyWebToken
     {
       iss = "www.example.com",
