@@ -113,7 +113,7 @@ namespace Jack.Security
     /// <typeparam name="T">The type of object to return.</typeparam>
     /// <param name="token">The JWT.</param>
     /// <param name="key">The key used to sign the JWT.</param>
-    /// <returns>An object representing the payload.</returns>
+    /// <returns>An object containing the JWT payload.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
     /// <exception cref="System.FormatException">The JWT is not formatted correctly.</exception>
     /// <exception cref="System.Security.Cryptography.CryptographicException">The signature is invalid, or the JWT is signed with an unsupported algorithm.</exception>
@@ -144,7 +144,7 @@ namespace Jack.Security
     /// <param name="token">The JWT.</param>
     /// <param name="key">The key used to sign the JWT.</param>
     /// <param name="verify">Specifies whether to verify the signature.</param>
-    /// <returns>A JSON string containing the JWT payload.</returns>
+    /// <returns>A JSON <c>string</c> containing the JWT payload.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
     /// <exception cref="System.FormatException">The JWT is not formatted correctly.</exception>
     /// <exception cref="System.Security.Cryptography.CryptographicException"><paramref name="verify"/> is <c>true</c> and the signature is invalid, or the JWT is signed with an unsupported algorithm.</exception>
