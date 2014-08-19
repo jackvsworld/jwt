@@ -6,27 +6,28 @@ This library supports generating and decoding [JSON Web Tokens](http://tools.iet
 Defining Tokens
 ---------------
 
-A typical JWT might contain some of these claims:
+A typical JWT might contain some of the following claims:
 
     public class MyWebToken : JsonWebToken
     {
-      public string sub { get; set; }  /* subject */
       public string iss { get; set; }  /* issuer */
+      public string sub { get; set; }  /* subject */
       public long exp { get; set; }    /* expiration time */
     }
     
-Simply create a subclass of `JsonWebToken` and add the claims that you want to use.
+To define a JWT, simply create a subclass of `JsonWebToken` and add a property for each claim that you want to use.
 
 Creating Tokens
 ---------------
 
 The following code creates a JWT with an expiration time of two hours:
 
+    var expires = DateTime.Now.AddHours(2.0);
     var jwt = new MyWebToken
     {
       iss = "www.example.com",
       sub = "jack@example.com",
-      exp = Convert.ToInt64(DateTime.Now.AddHours(2.0).Subtract(JsonWebToken.Epoch).TotalSeconds),
+      exp = Convert.ToInt64(expires.Subtract(JsonWebToken.Epoch).TotalSeconds),
     };
     
     string token = jwt.Encode("MY_SECRET_KEY", JwtHashAlgorithm.HS256);
@@ -43,7 +44,7 @@ The following code demonstrates how to verify and decode a JWT:
 
     try
     {
-      var jwt = JsonWebToken.Decode<MyWebToken>(token, "MY_SECRET_KEY");
+      string jwt = JsonWebToken.Decode(token, "MY_SECRET_KEY", true);
       Console.WriteLine(jwt);
     }
     

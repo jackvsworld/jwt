@@ -51,6 +51,29 @@ namespace Jack.Security
   }
 
   /// <summary>
+  /// Represents the header of a JSON Web Token.
+  /// </summary>
+  internal struct JwtHeader
+  {
+    #region Properties
+
+    /// <summary>
+    /// Identifies an object as a JWT.
+    /// </summary>
+    public string typ
+    {
+      get { return "JWT"; }
+    }
+
+    /// <summary>
+    /// Specifies the cryptographic algorithm used to secure a JWT.
+    /// </summary>
+    public string alg { get; set; }
+
+    #endregion
+  }
+
+  /// <summary>
   /// Provides methods for encoding and decoding JSON Web Tokens.
   /// </summary>
   /// <remarks>
@@ -63,26 +86,21 @@ namespace Jack.Security
     /// <summary>
     /// The epoch used for calculating for JWT datetime values.
     /// </summary>
+    /// <remarks>
+    /// January 1, 1970
+    /// </remarks>
     public static readonly DateTime Epoch = new DateTime(1970, 1, 1);
 
     private static readonly Encoding encoding = Encoding.UTF8;
     private static readonly JavaScriptSerializer json = new JavaScriptSerializer();
-
-    private static readonly Dictionary<JwtHashAlgorithm, Func<byte[], byte[], byte[]>> hashAlgorithms
-      = new Dictionary<JwtHashAlgorithm, Func<byte[], byte[], byte[]>>
-    {
-      { JwtHashAlgorithm.HS256, (key, value) => { using (var sha = new HMACSHA256(key)) { return sha.ComputeHash(value); } } },
-      { JwtHashAlgorithm.HS384, (key, value) => { using (var sha = new HMACSHA384(key)) { return sha.ComputeHash(value); } } },
-      { JwtHashAlgorithm.HS512, (key, value) => { using (var sha = new HMACSHA512(key)) { return sha.ComputeHash(value); } } },
-    };
 
     #endregion
 
     /// <summary>
     /// Encodes a JWT.
     /// </summary>
-    /// <param name="key">The key used to sign the token.</param>
-    /// <param name="algorithm">The hash algorithm to use.</param>
+    /// <param name="key">The key used to sign the JWT.</param>
+    /// <param name="algorithm">Specifies which hash algorithm to use.</param>
     /// <returns>The generated JWT.</returns>
     public string Encode(string key, JwtHashAlgorithm algorithm)
     {
@@ -94,7 +112,7 @@ namespace Jack.Security
     /// </summary>
     /// <typeparam name="T">The type of object to return.</typeparam>
     /// <param name="token">The JWT.</param>
-    /// <param name="key">The key that was used to sign the JWT.</param>
+    /// <param name="key">The key used to sign the JWT.</param>
     /// <returns>An object representing the payload.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
     /// <exception cref="System.FormatException">The JWT is not formatted correctly.</exception>
@@ -109,17 +127,30 @@ namespace Jack.Security
     /// </summary>
     /// <typeparam name="T">The type of object to return.</typeparam>
     /// <param name="token">The JWT.</param>
-    /// <param name="key">The key that was used to sign the JWT.</param>
-    /// <param name="verify">Whether to verify the signature.</param>
-    /// <returns>An object representing the payload.</returns>
+    /// <param name="key">The key used to sign the JWT.</param>
+    /// <param name="verify">Specifies whether to verify the signature.</param>
+    /// <returns>An object containing the JWT payload.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
     /// <exception cref="System.FormatException">The JWT is not formatted correctly.</exception>
     /// <exception cref="System.Security.Cryptography.CryptographicException"><paramref name="verify"/> is <c>true</c> and the signature is invalid, or the JWT is signed with an unsupported algorithm.</exception>
     public static T Decode<T>(string token, string key, bool verify)
     {
-      string payloadJson = JsonWebToken.Decode(token, key, verify);
-      T payloadData = json.Deserialize<T>(payloadJson);
-      return payloadData;
+      return json.Deserialize<T>(JsonWebToken.Decode(token, key, verify));
+    }
+
+    /// <summary>
+    /// Decodes a JWT, verifies the signature, and returns the JSON payload as a <c>string</c>.
+    /// </summary>
+    /// <param name="token">The JWT.</param>
+    /// <param name="key">The key used to sign the JWT.</param>
+    /// <param name="verify">Specifies whether to verify the signature.</param>
+    /// <returns>A JSON string containing the JWT payload.</returns>
+    /// <exception cref="System.ArgumentNullException"><paramref name="token"/> is <c>null</c>.</exception>
+    /// <exception cref="System.FormatException">The JWT is not formatted correctly.</exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException"><paramref name="verify"/> is <c>true</c> and the signature is invalid, or the JWT is signed with an unsupported algorithm.</exception>
+    public static string Decode(string token, string key, bool verify)
+    {
+      return JsonWebToken.Decode(token, encoding.GetBytes(key), verify);
     }
 
     #region Private methods
@@ -127,21 +158,25 @@ namespace Jack.Security
     private static string Encode(object payload, byte[] key, JwtHashAlgorithm algorithm)
     {
       var segments = new List<string>(3);
-      var header = new { typ = "JWT", alg = algorithm.ToString() };
-
+      var header = new JwtHeader { alg = algorithm.ToString() };
       byte[] headerBytes = encoding.GetBytes(json.Serialize(header));
       byte[] payloadBytes = encoding.GetBytes(json.Serialize(payload));
 
+      // Get the JWT header and payload
       segments.Add(Base64UrlEncode(headerBytes));
       segments.Add(Base64UrlEncode(payloadBytes));
 
-      string stringToSign = String.Join(".", segments.ToArray());
-      byte[] bytesToSign = encoding.GetBytes(stringToSign);
-      byte[] signature = hashAlgorithms[algorithm](key, bytesToSign);
+      using (var sha = GetHashFunction(algorithm, key))
+      {
+        string stringToSign = String.Join(".", segments.ToArray());
+        byte[] signature = sha.ComputeHash(encoding.GetBytes(stringToSign));
 
-      segments.Add(Base64UrlEncode(signature));
+        // Get the hash signature for the JWT
+        segments.Add(Base64UrlEncode(signature));
 
-      return String.Join(".", segments.ToArray());
+        // Join all the segments together and return the complete JWT
+        return String.Join(".", segments.ToArray());
+      }
     }
 
     private static string Encode(object payload, string key, JwtHashAlgorithm algorithm)
@@ -174,29 +209,28 @@ namespace Jack.Security
 
       string headerJson = encoding.GetString(Base64UrlDecode(header));
       string payloadJson = encoding.GetString(Base64UrlDecode(payload));
-      var headerData = json.Deserialize<Dictionary<string, object>>(headerJson);
 
       if (verify)
       {
-        byte[] bytesToSign = encoding.GetBytes(String.Concat(header, ".", payload));
+        var headerData = json.Deserialize<Dictionary<string, object>>(headerJson);
         var algorithm = GetHashAlgorithm((string)headerData["alg"]);
-        byte[] signature = hashAlgorithms[algorithm](key, bytesToSign);
-        string decodedCrypto = Convert.ToBase64String(crypto);
-        string decodedSignature = Convert.ToBase64String(signature);
+        byte[] bytesToSign = encoding.GetBytes(String.Concat(header, ".", payload));
 
-        if (decodedCrypto != decodedSignature)
+        using (var sha = GetHashFunction(algorithm, key))
         {
-          throw new CryptographicException(String.Format(CultureInfo.InvariantCulture,
-            "Invalid signature. Expected {0} but got {1}", decodedCrypto, decodedSignature));
+          byte[] signature = sha.ComputeHash(bytesToSign);
+          string decodedCrypto = Convert.ToBase64String(crypto);
+          string decodedSignature = Convert.ToBase64String(signature);
+
+          if (decodedCrypto != decodedSignature)
+          {
+            throw new CryptographicException(String.Format(CultureInfo.InvariantCulture,
+              "Invalid signature. Expected {0} got {1}", decodedCrypto, decodedSignature));
+          }
         }
       }
 
       return payloadJson;
-    }
-
-    private static string Decode(string token, string key, bool verify)
-    {
-      return JsonWebToken.Decode(token, encoding.GetBytes(key), verify);
     }
 
     private static JwtHashAlgorithm GetHashAlgorithm(string algorithm)
@@ -206,6 +240,17 @@ namespace Jack.Security
         case "HS256": return JwtHashAlgorithm.HS256;
         case "HS384": return JwtHashAlgorithm.HS384;
         case "HS512": return JwtHashAlgorithm.HS512;
+        default: throw new CryptographicException("Algorithm not supported.");
+      }
+    }
+
+    private static HMAC GetHashFunction(JwtHashAlgorithm algorithm, byte[] key)
+    {
+      switch (algorithm)
+      {
+        case JwtHashAlgorithm.HS256: return new HMACSHA256(key);
+        case JwtHashAlgorithm.HS384: return new HMACSHA384(key);
+        case JwtHashAlgorithm.HS512: return new HMACSHA512(key);
         default: throw new CryptographicException("Algorithm not supported.");
       }
     }
@@ -233,7 +278,8 @@ namespace Jack.Security
         case 3: output += "="; break;  // One pad char
         default: throw new FormatException("Invalid base64url string.");
       }
-      return Convert.FromBase64String(output); // Standard base64 decoder
+      byte[] converted = Convert.FromBase64String(output); // Standard base64 decoder
+      return converted;
     }
 
     #endregion

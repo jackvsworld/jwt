@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("JWT")]
-[assembly: AssemblyDescription("Json Web Token")]
+[assembly: AssemblyDescription("JSON Web Token")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Public domain")]
 [assembly: AssemblyProduct("JWT")]
